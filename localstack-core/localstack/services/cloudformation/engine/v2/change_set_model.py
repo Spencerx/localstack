@@ -415,7 +415,10 @@ OutputsKey: Final[str] = "Outputs"
 DependsOnKey: Final[str] = "DependsOn"
 # TODO: expand intrinsic functions set.
 RefKey: Final[str] = "Ref"
+RefConditionKey: Final[str] = "Condition"
 FnIfKey: Final[str] = "Fn::If"
+FnAnd: Final[str] = "Fn::And"
+FnOr: Final[str] = "Fn::Or"
 FnNotKey: Final[str] = "Fn::Not"
 FnJoinKey: Final[str] = "Fn::Join"
 FnGetAttKey: Final[str] = "Fn::GetAtt"
@@ -429,7 +432,10 @@ FnGetAZs: Final[str] = "Fn::GetAZs"
 FnBase64: Final[str] = "Fn::Base64"
 INTRINSIC_FUNCTIONS: Final[set[str]] = {
     RefKey,
+    RefConditionKey,
     FnIfKey,
+    FnAnd,
+    FnOr,
     FnNotKey,
     FnJoinKey,
     FnEqualsKey,
@@ -534,6 +540,13 @@ class ChangeSetModel:
         self._visited_scopes[scope] = node_intrinsic_function
         return node_intrinsic_function
 
+    def _resolve_intrinsic_function_fn_sub(self, arguments: ChangeSetEntity) -> ChangeType:
+        # TODO: This routine should instead export the implicit Ref and GetAtt calls within the first
+        #       string template parameter and compute the respective change set types. Currently,
+        #       changes referenced by Fn::Sub templates are only picked up during preprocessing; not
+        #       at modelling.
+        return arguments.change_type
+
     def _resolve_intrinsic_function_fn_get_att(self, arguments: ChangeSetEntity) -> ChangeType:
         # TODO: add support for nested intrinsic functions.
         # TODO: validate arguments structure and type.
@@ -585,6 +598,18 @@ class ChangeSetModel:
         # TODO: this should check the replacement flag for a resource update.
         node_resource = self._retrieve_or_visit_resource(resource_name=logical_id)
         return node_resource.change_type
+
+    def _resolve_intrinsic_function_condition(self, arguments: ChangeSetEntity) -> ChangeType:
+        if arguments.change_type != ChangeType.UNCHANGED:
+            return arguments.change_type
+        if not isinstance(arguments, TerminalValue):
+            return arguments.change_type
+
+        condition_name = arguments.value
+        node_condition = self._retrieve_condition_if_exists(condition_name=condition_name)
+        if isinstance(node_condition, NodeCondition):
+            return node_condition.change_type
+        raise RuntimeError(f"Undefined condition '{condition_name}'")
 
     def _resolve_intrinsic_function_fn_find_in_map(self, arguments: ChangeSetEntity) -> ChangeType:
         if arguments.change_type != ChangeType.UNCHANGED:
