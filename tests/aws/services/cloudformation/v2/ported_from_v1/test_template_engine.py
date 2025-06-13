@@ -65,7 +65,6 @@ class TestTypes:
 
 
 class TestIntrinsicFunctions:
-    @pytest.mark.skip(reason="CFNV2:Fn::And CFNV2:Fn::Or")
     @pytest.mark.parametrize(
         ("intrinsic_fn", "parameter_1", "parameter_2", "expected_bucket_created"),
         [
@@ -122,6 +121,7 @@ class TestIntrinsicFunctions:
         converted_string = base64.b64encode(bytes(original_string, "utf-8")).decode("utf-8")
         assert converted_string == deployed.outputs["Encoded"]
 
+    @pytest.mark.skip(reason="CFNV2:LanguageExtensions")
     @markers.aws.validated
     def test_split_length_and_join_functions(self, deploy_cfn_template):
         template_path = os.path.join(
@@ -253,7 +253,6 @@ class TestIntrinsicFunctions:
         result = stack.outputs["Result"]
         assert result == "test"
 
-    @pytest.mark.skip(reason="CFNV2:Fn::Sub typing or replacement always string")
     @markers.aws.validated
     def test_sub_number_type(self, deploy_cfn_template):
         alarm_name_prefix = "alarm-test-latency-preemptive"
@@ -274,7 +273,6 @@ class TestIntrinsicFunctions:
         assert stack.outputs["Threshold"] == threshold
         assert stack.outputs["Period"] == period
 
-    @pytest.mark.skip(reason="CFNV2:Fn::Join")
     @markers.aws.validated
     def test_join_no_value_construct(self, deploy_cfn_template, snapshot, aws_client):
         stack = deploy_cfn_template(
