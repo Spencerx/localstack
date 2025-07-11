@@ -936,7 +936,7 @@ def opensearch_wait_for_cluster(aws_client):
     def _wait_for_cluster(domain_name: str):
         def finished_processing():
             status = aws_client.opensearch.describe_domain(DomainName=domain_name)["DomainStatus"]
-            return status["Processing"] is False and "Endpoint" in status
+            return status["DomainProcessingStatus"] == "Active" and "Endpoint" in status
 
         assert poll_condition(
             finished_processing, timeout=25 * 60, **({"interval": 10} if is_aws_cloud() else {})
@@ -1106,6 +1106,8 @@ def deploy_cfn_template(
 
         if template_path is not None:
             template = load_template_file(template_path)
+            if template is None:
+                raise RuntimeError(f"Could not find file {os.path.realpath(template_path)}")
         template_rendered = render_template(template, **(template_mapping or {}))
 
         kwargs = dict(
@@ -2189,29 +2191,6 @@ def create_rest_apigw_openapi(aws_client_factory):
         with contextlib.suppress(Exception):
             apigateway_client = aws_client_factory(region_name=region_name).apigateway
             apigateway_client.delete_rest_api(restApiId=rest_api_id)
-
-
-@pytest.fixture
-def appsync_create_api(aws_client):
-    graphql_apis = []
-
-    def factory(**kwargs):
-        if "name" not in kwargs:
-            kwargs["name"] = f"graphql-api-testing-name-{short_uid()}"
-        if not kwargs.get("authenticationType"):
-            kwargs["authenticationType"] = "API_KEY"
-
-        result = aws_client.appsync.create_graphql_api(**kwargs)["graphqlApi"]
-        graphql_apis.append(result["apiId"])
-        return result
-
-    yield factory
-
-    for api in graphql_apis:
-        try:
-            aws_client.appsync.delete_graphql_api(apiId=api)
-        except Exception as e:
-            LOG.debug("Error cleaning up AppSync API: %s, %s", api, e)
 
 
 @pytest.fixture

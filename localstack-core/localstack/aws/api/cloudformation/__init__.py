@@ -150,6 +150,7 @@ StackPolicyURL = str
 StackRefactorId = str
 StackRefactorResourceIdentifier = str
 StackRefactorStatusReason = str
+StackResourceDriftStatusReason = str
 StackSetARN = str
 StackSetId = str
 StackSetName = str
@@ -609,6 +610,7 @@ class StackResourceDriftStatus(StrEnum):
     MODIFIED = "MODIFIED"
     DELETED = "DELETED"
     NOT_CHECKED = "NOT_CHECKED"
+    UNKNOWN = "UNKNOWN"
 
 
 class StackSetDriftDetectionStatus(StrEnum):
@@ -717,6 +719,7 @@ class WarningType(StrEnum):
     MUTUALLY_EXCLUSIVE_PROPERTIES = "MUTUALLY_EXCLUSIVE_PROPERTIES"
     UNSUPPORTED_PROPERTIES = "UNSUPPORTED_PROPERTIES"
     MUTUALLY_EXCLUSIVE_TYPES = "MUTUALLY_EXCLUSIVE_TYPES"
+    EXCLUDED_PROPERTIES = "EXCLUDED_PROPERTIES"
 
 
 class AlreadyExistsException(ServiceException):
@@ -1699,6 +1702,7 @@ class StackResourceDrift(TypedDict, total=False):
     StackResourceDriftStatus: StackResourceDriftStatus
     Timestamp: Timestamp
     ModuleInfo: Optional[ModuleInfo]
+    DriftStatusReason: Optional[StackResourceDriftStatusReason]
 
 
 StackResourceDrifts = List[StackResourceDrift]
